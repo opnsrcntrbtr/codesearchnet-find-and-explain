@@ -8,7 +8,7 @@ from helpers import make_example
 from csne.config import DataConfig
 from csne.data.loader import load_prepared, save_split
 from csne.data.preprocess import clean_docstring, filter_examples, normalize_code
-from csne.data.splits import SPLITS, make_splits
+from csne.data.splits import SPLITS, make_splits, prepare_official_splits
 
 
 def test_clean_docstring_strips_rest_param_sections():
@@ -174,3 +174,52 @@ def test_query_never_uses_generated_summary():
     """Using the generated summary as a query would leak it into retrieval scores."""
     ex = make_example(docstring="Add one to a number.", summary="Increment.")
     assert ex.query == "Add one to a number."
+
+
+def test_prepare_official_splits_caches_full_train_regardless_of_max_train(
+    tmp_path, monkeypatch
+):
+    """`max_train` must never truncate the cache — only `build_training_pairs`
+    subsets, later, by sampling. A slice here would bake in corpus-order bias
+    (the corpus is dominated by a few large repos up front) that no amount of
+    later sampling could undo."""
+    all_examples = [
+        make_example(
+            id=str(i), repo=f"org/repo{i}", docstring=f"does thing {i}",
+            code=f"def f{i}(x):\n    return x + {i}",
+        )
+        for i in range(30)
+    ]
+
+    def fake_load_raw(config, split, summaries=None):
+        return iter(all_examples)
+
+    monkeypatch.setattr("csne.data.splits.load_summary_map", lambda config: {})
+    monkeypatch.setattr("csne.data.splits.load_raw", fake_load_raw)
+
+    config = DataConfig(cache_dir=str(tmp_path), max_train=5, max_eval=5)
+    result = prepare_official_splits(config)
+
+    assert len(result["train"]) == 30
+    assert len(load_prepared("train", config)) == 30
+
+
+def test_prepare_official_splits_caps_eval_splits_by_max_eval(tmp_path, monkeypatch):
+    """valid/test are used whole at eval time, so they are capped at cache time."""
+    all_examples = [
+        make_example(
+            id=str(i), repo=f"org/repo{i}", docstring=f"does thing {i}",
+            code=f"def f{i}(x):\n    return x + {i}",
+        )
+        for i in range(30)
+    ]
+    monkeypatch.setattr("csne.data.splits.load_summary_map", lambda config: {})
+    monkeypatch.setattr(
+        "csne.data.splits.load_raw", lambda config, split, summaries=None: iter(all_examples)
+    )
+
+    config = DataConfig(cache_dir=str(tmp_path), max_train=None, max_eval=5)
+    result = prepare_official_splits(config)
+
+    assert len(result["valid"]) == 5
+    assert len(result["test"]) == 5

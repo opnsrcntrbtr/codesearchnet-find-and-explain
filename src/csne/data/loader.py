@@ -152,8 +152,7 @@ def save_split(split: str, examples: list[CodeExample], config: DataConfig) -> P
     path = _split_file(split, config)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as fh:
-        for ex in examples:
-            fh.write(json.dumps(asdict(ex)) + "\n")
+        fh.writelines(json.dumps(asdict(ex)) + "\n" for ex in examples)
     return path
 
 
