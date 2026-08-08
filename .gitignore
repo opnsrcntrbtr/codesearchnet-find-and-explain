@@ -5,8 +5,11 @@ uv.lock
 .ipynb_checkpoints/
 
 # Data + artifacts: never commit corpora, checkpoints, or indexes.
-data/
-checkpoints/
+# Anchored to repo root (leading slash) — an unanchored "data/" also matches
+# src/csne/data/, which silently dropped the entire data layer package from
+# git while `git status` stayed clean (ignored paths don't show as untracked).
+/data/
+/checkpoints/
 *.faiss
 *.npy
 *.pt
