@@ -1,0 +1,27 @@
+# Corpus source, filtering, and caching. Shared by all experiments.
+#
+# Two datasets, joined on the GitHub permalink (`func_code_url` / `url`), which
+# pins repo + commit sha + line range and so is unique per function. Joining on
+# repo+path+func_name would collide across same-named methods in one file.
+#
+#   retrieval_dataset  - canonical CodeSearchNet. Official train/valid/test
+#                        splits, already repo-disjoint, so retrieval numbers
+#                        stay comparable to published baselines.
+#   summary_dataset    - same Python corpus with an added `summary` column:
+#                        a one-line description, far cleaner as a
+#                        summarization target than the raw docstring.
+retrieval_dataset: code-search-net/code_search_net
+retrieval_config: python
+summary_dataset: Nan-Do/code-search-net-python
+language: python
+
+# null = use the full split. Set to a small number for local smoke tests.
+max_train: null
+max_eval: 1000
+
+min_docstring_tokens: 3
+max_code_tokens: 512
+deduplicate: true
+
+cache_dir: data/cache
+seed: 42

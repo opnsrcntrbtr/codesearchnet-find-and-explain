@@ -1,0 +1,19 @@
+# First fine-tuning run: 50K sampled pairs, one epoch, Colab T4.
+# Small enough to prove the training path end-to-end and return a real number
+# quickly; the full-corpus run is `finetune_minilm.yaml`.
+name: finetune-minilm-50k
+
+data: ../data.yaml
+retrieval: ../retrieval.yaml
+summarization: ../summarization.yaml
+evaluation: ../eval.yaml
+
+overrides:
+  data:
+    # Sampled, not sliced — the cache is in corpus order and its first rows
+    # are dominated by a handful of large repos.
+    max_train: 50000
+  retrieval:
+    epochs: 1
+    batch_size: 64
+    output_dir: checkpoints/retrieval-50k

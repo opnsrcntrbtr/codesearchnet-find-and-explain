@@ -1,0 +1,13 @@
+# The main run: fine-tune MiniLM on (query, code) pairs, Colab T4.
+name: finetune-minilm-mnrl
+
+data: ../data.yaml
+retrieval: ../retrieval.yaml
+summarization: ../summarization.yaml
+evaluation: ../eval.yaml
+
+overrides:
+  retrieval:
+    epochs: 3
+    # Drop to 32 if the T4 OOMs; larger is better for in-batch negatives.
+    batch_size: 64

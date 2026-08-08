@@ -1,0 +1,13 @@
+# Retrieval encoder and fine-tuning hyperparameters.
+base_model: sentence-transformers/all-MiniLM-L6-v2
+
+# In-batch negatives: larger batch = harder negatives, no mining needed.
+loss: MultipleNegativesRankingLoss
+
+epochs: 1
+batch_size: 64
+learning_rate: 2.0e-5
+warmup_ratio: 0.1
+max_seq_length: 256
+
+output_dir: checkpoints/retrieval

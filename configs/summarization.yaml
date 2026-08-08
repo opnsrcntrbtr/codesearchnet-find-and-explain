@@ -1,0 +1,10 @@
+# Summarization backend. Swap `backend` to compare API vs. local model.
+# backend: anthropic -> requires ANTHROPIC_API_KEY and the `anthropic` extra
+# backend: hf        -> local seq2seq, requires the `hf` extra
+backend: anthropic
+model: claude-sonnet-5
+
+max_output_tokens: 160
+temperature: 0.0
+
+prompt_template: prompts/function_summary.txt

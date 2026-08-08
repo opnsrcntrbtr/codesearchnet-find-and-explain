@@ -1,0 +1,11 @@
+# Evaluation protocol. Kept fixed across runs so numbers stay comparable.
+retrieval_k: [1, 5, 10]
+
+# CodeSearchNet convention: rank the gold function against 999 distractors.
+distractor_pool_size: 999
+
+summarization_metrics:
+  - bleu
+  - bertscore
+
+results_dir: results

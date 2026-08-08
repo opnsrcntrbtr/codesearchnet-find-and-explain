@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+.venv/
+uv.lock
+.ipynb_checkpoints/
+
+# Data + artifacts: never commit corpora, checkpoints, or indexes.
+data/
+checkpoints/
+*.faiss
+*.npy
+*.pt
+
+# Results: held out of git until the fine-tuned run lands, so the file
+# arrives complete rather than partial. Bulky per-example dumps stay ignored.
+results/*.csv
+results/**/raw/
+
+# Local MCP server registration (colab-mcp); each machine registers its own.
+.mcp.json
+
+.env
+.DS_Store
+.pytest_cache/
+*.egg-info/

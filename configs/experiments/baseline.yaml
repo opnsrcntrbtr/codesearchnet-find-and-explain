@@ -1,0 +1,13 @@
+# Un-finetuned MiniLM + zero-shot summarization. The number every other run
+# must beat.
+name: baseline-minilm-zeroshot
+
+data: ../data.yaml
+retrieval: ../retrieval.yaml
+summarization: ../summarization.yaml
+evaluation: ../eval.yaml
+
+overrides:
+  retrieval:
+    # No training: evaluate the base encoder as-is.
+    epochs: 0
