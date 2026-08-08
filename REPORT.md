@@ -96,7 +96,7 @@ against a 1,000-document corpus (1 gold + 999 distractors). Logged in
 |---|---:|---:|---:|---:|---:|
 | BM25 (lexical) | 0.5272 | 0.4070 | 0.6680 | 0.7470 | 0.5739 |
 | MiniLM, zero-shot | 0.6872 | 0.5670 | 0.8370 | 0.8980 | 0.7356 |
-| MiniLM, fine-tuned | _pending_ | | | | |
+| MiniLM, fine-tuned (50K pairs, 1 epoch) | **0.7937** | 0.7010 | 0.9140 | 0.9450 | 0.8292 |
 
 - The un-finetuned encoder already leads BM25 by ~0.16 MRR, the expected
   shape of the result: docstring queries and code bodies share little
@@ -104,8 +104,15 @@ against a 1,000-document corpus (1 gold + 999 distractors). Logged in
 - BM25 is not a straw man — it splits snake_case identifiers, so
   `parse_json_file` is reachable from "parse json file". Its R@10 of 0.747
   indicates how much signal identifier names alone carry.
-- Fine-tuning is the outstanding experiment; the gain over the zero-shot row
-  is the headline number for this project.
+- Fine-tuning on a 50K-pair sample (repo-independent, not a corpus-order
+  slice), one epoch, MultipleNegativesRankingLoss, batch 64, on a free Colab
+  T4 (~11.6 min, 781 steps, train loss 0.229→0.217) adds **+0.107 MRR**
+  (+15.5% relative) over the zero-shot encoder, and +0.267 over BM25.
+  R@1 rises from 0.567 to 0.701 — the largest gain is getting the correct
+  function to the very top of the list, not just into the top 10.
+  The full 393K-pair / 3-epoch run (`finetune_minilm.yaml`) is the next
+  experiment and is expected to improve further, though with diminishing
+  returns and a real risk of overfitting the in-batch negatives.
 
 ### Discussion points to develop
 
@@ -114,6 +121,9 @@ against a 1,000-document corpus (1 gold + 999 distractors). Logged in
 - Sensitivity of every metric to `distractor_pool_size`.
 - Corpus attrition: 412,178 raw train rows yield 393,427 after filtering
   (~4.5% dropped as boilerplate, non-English, over-long, or duplicate).
+- Whether the 50K→393K jump mainly buys more in-batch negative diversity
+  per epoch, more epochs of exposure, or both — worth an ablation once the
+  full run lands.
 
 ## 6. Limitations & Future Work
 

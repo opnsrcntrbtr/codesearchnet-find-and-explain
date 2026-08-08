@@ -14,9 +14,9 @@ uv.lock
 *.npy
 *.pt
 
-# Results: held out of git until the fine-tuned run lands, so the file
-# arrives complete rather than partial. Bulky per-example dumps stay ignored.
-results/*.csv
+# Results CSVs are committed (see results/retrieval_results.csv) — appended
+# per run, never overwritten, so they're a reproducible experiment log.
+# Bulky per-example dumps stay out of git.
 results/**/raw/
 
 # Local MCP server registration (colab-mcp); each machine registers its own.

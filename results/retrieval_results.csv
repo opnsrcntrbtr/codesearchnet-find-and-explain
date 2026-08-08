@@ -1,0 +1,4 @@
+timestamp,git_commit,config_hash,run_name,mrr,n_queries,recall@1,recall@5,recall@10,ndcg@1,ndcg@5,ndcg@10
+2026-08-08T23:20:50+00:00,afc9d97,ac85e0d4dbbc,bm25,0.5272,1000,0.407,0.668,0.747,0.407,0.5483,0.5739
+2026-08-08T23:20:50+00:00,afc9d97,ac85e0d4dbbc,baseline-minilm-zeroshot,0.6872,1000,0.567,0.837,0.898,0.567,0.7156,0.7356
+2026-08-08T23:35:29+00:00,afc9d97,a7664bb2c254,finetune-minilm-50k,0.7937,1000,0.701,0.914,0.945,0.701,0.8189,0.8292
