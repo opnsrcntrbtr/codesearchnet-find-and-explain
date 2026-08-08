@@ -98,6 +98,10 @@ against a 1,000-document corpus (1 gold + 999 distractors). Logged in
 | MiniLM, zero-shot | 0.6872 | 0.5670 | 0.8370 | 0.8980 | 0.7356 |
 | MiniLM, fine-tuned (50K pairs, 1 epoch) | **0.7937** | 0.7010 | 0.9140 | 0.9450 | 0.8292 |
 
+Checkpoint: [`opnsrcntrbtrian/csne-minilm-retrieval-50k`](https://huggingface.co/opnsrcntrbtrian/csne-minilm-retrieval-50k)
+(private). Colab's local disk is ephemeral and would otherwise have lost it
+on the next runtime recycle.
+
 - The un-finetuned encoder already leads BM25 by ~0.16 MRR, the expected
   shape of the result: docstring queries and code bodies share little
   literal vocabulary, which handicaps lexical matching.
