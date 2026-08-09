@@ -32,6 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
         return sub
 
     add("prepare-data", "download, clean, split, and cache the corpus")
+    add("finetune-summarizer", "fine-tune the local HF summarizer on (code, target) pairs")
     add("train", "fine-tune the retrieval encoder")
 
     evaluate = add("evaluate", "score retrieval and append results to CSV")
@@ -89,6 +90,17 @@ def cmd_train(args: argparse.Namespace) -> int:
     config = _load(args)
     train_encoder(config.retrieval, config.data, run_name=config.name)
     log.info("saved encoder to %s", config.retrieval.output_dir)
+    return 0
+
+def cmd_finetune_summarizer(args: argparse.Namespace) -> int:
+    """Fine-tune the local HF summarizer on (code, target) pairs."""
+    from csne.summarization.hf_backend import finetune_summarizer
+
+    config = _load(args)
+    ft_model = finetune_summarizer(
+        config.summarization, config.data, run_name=config.name
+    )
+    log.info("saved fine-tuned summarizer to %s", ft_model.name)
     return 0
 
 
@@ -202,6 +214,7 @@ def cmd_explain(args: argparse.Namespace) -> int:
 _COMMANDS = {
     "prepare-data": cmd_prepare_data,
     "train": cmd_train,
+    "finetune-summarizer": cmd_finetune_summarizer,
     "evaluate": cmd_evaluate,
     "search": cmd_search,
     "explain": cmd_explain,
