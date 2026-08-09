@@ -108,11 +108,14 @@ against a 1,000-document corpus (1 gold + 999 distractors). Logged in
 |---|---:|---:|---:|---:|---:|
 | BM25 (lexical) | 0.5272 | 0.4070 | 0.6680 | 0.7470 | 0.5739 |
 | MiniLM, zero-shot | 0.6872 | 0.5670 | 0.8370 | 0.8980 | 0.7356 |
-| MiniLM, fine-tuned (50K pairs, 1 epoch) | **0.7937** | 0.7010 | 0.9140 | 0.9450 | 0.8292 |
+| MiniLM, fine-tuned (50K pairs, 1 epoch) | 0.7937 | 0.7010 | 0.9140 | 0.9450 | 0.8292 |
+| MiniLM, fine-tuned (full 393K corpus, 1 epoch) | **0.8151** | 0.7250 | 0.9330 | 0.9610 | 0.8499 |
 
-Checkpoint: [`opnsrcntrbtrian/csne-minilm-retrieval-50k`](https://huggingface.co/opnsrcntrbtrian/csne-minilm-retrieval-50k)
-(private). Colab's local disk is ephemeral and would otherwise have lost it
-on the next runtime recycle.
+Checkpoints (both private):
+[`csne-minilm-retrieval-50k`](https://huggingface.co/opnsrcntrbtrian/csne-minilm-retrieval-50k),
+[`csne-minilm-retrieval-full-1ep`](https://huggingface.co/opnsrcntrbtrian/csne-minilm-retrieval-full-1ep).
+Pushed from Colab because its local disk is ephemeral and would otherwise
+have lost them on the next runtime recycle.
 
 - The un-finetuned encoder already leads BM25 by ~0.16 MRR, the expected
   shape of the result: docstring queries and code bodies share little
@@ -126,10 +129,14 @@ on the next runtime recycle.
   (+15.5% relative) over the zero-shot encoder, and +0.267 over BM25.
   R@1 rises from 0.567 to 0.701 — the largest gain is getting the correct
   function to the very top of the list, not just into the top 10.
-  A full-corpus 1-epoch run (`finetune_minilm_full_1ep.yaml`, ~91 min on a
-  free T4) is in progress as the next data point; the 3-epoch config
+- The full 393K-pair corpus, still at one epoch (~93 min, 6,147 steps, train
+  loss 0.272→0.147), adds a further **+0.0214 MRR** over the 50K run
+  (**+0.128 over zero-shot**, **+0.288 over BM25**). R@1 reaches 0.725 —
+  more data at fixed epoch count keeps paying off, though the marginal gain
+  per additional example (50K→393K, ~7.9× the data) is much smaller than the
+  gain from fine-tuning at all (zero-shot→50K). The 3-epoch config
   (`finetune_minilm.yaml`, ~4.5hr on a free T4 with no resume-on-disconnect)
-  is deferred to a more reliable tier.
+  is deferred to a more reliable tier as the next experiment.
 
 ### Summarization
 
