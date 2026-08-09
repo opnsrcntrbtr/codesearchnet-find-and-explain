@@ -49,7 +49,10 @@ class SummarizationConfig:
     """Which summarizer backend to use and how to drive it."""
 
     backend: str = "anthropic"  # "anthropic" | "hf"
-    model: str = "claude-sonnet-5"
+    # None defers to each backend's own DEFAULT_MODEL — a single default here
+    # would be wrong for whichever backend isn't "anthropic" (an HF backend
+    # fed "claude-sonnet-5" tries to pull that as a Hub repo id and fails).
+    model: str | None = None
     max_output_tokens: int = 160
     temperature: float = 0.0
     prompt_template: str = "prompts/function_summary.txt"

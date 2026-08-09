@@ -43,9 +43,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--bm25", action="store_true", help="also evaluate the lexical BM25 baseline"
     )
 
-    search = add("search", "run one find-and-explain query")
+    search = add("search", "run one retrieval-only query (free — no summarization cost)")
     search.add_argument("--query", required=True)
     search.add_argument("-k", type=int, default=5)
+
+    explain = add("explain", "retrieve and summarize each result (costs API tokens on the anthropic backend)")
+    explain.add_argument("--query", required=True)
+    explain.add_argument("-k", type=int, default=5)
 
     return parser
 

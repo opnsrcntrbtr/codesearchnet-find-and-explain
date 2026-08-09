@@ -10,11 +10,13 @@ integration.
 
 ## Current phase
 
-**Phase 3: Implementation.** The scaffold exists — every module in
-`src/csne/` is a stub raising `NotImplementedError`, and every test is
-skipped with a `Phase 3` reason. The job now is to replace stubs with
-working code, bottom-up: data → retrieval → evaluation → summarization →
-pipeline/CLI.
+**Phase 3: Implementation — mostly complete.** Data, retrieval, retrieval
+evaluation, both summarization backends, and `pipeline.py`/CLI are
+implemented and tested (91 tests, 16 marked `slow` because they load real
+models). First fine-tune result is recorded in `REPORT.md` and
+`results/retrieval_results.csv`. Still stubs: summarization *metrics*
+(`corpus_bleu`, `bertscore_f1`, `llm_judge`, `evaluate_summarization` in
+`src/csne/evaluation/summarization_metrics.py`) and `finetune_summarizer`.
 
 Phases 1 (docs) and 2 (scaffold) are complete.
 
@@ -51,6 +53,17 @@ These were chosen deliberately; do not silently change them.
 - **Evaluation caps the corpus** at `distractor_pool_size + 1` (CSN uses
   1 gold + 999 distractors). Scoring against the full split instead makes
   the task harder and the numbers incomparable to published results.
+- **`SummarizationConfig.model` defaults to `None`**, not a fixed string —
+  each backend supplies its own `DEFAULT_MODEL`. A single hardcoded default
+  is wrong for whichever backend isn't in use (an HF backend fed
+  `claude-sonnet-5` tries to pull that as a Hub repo id and fails).
+- **HF summarization backend is `google/flan-t5-base`, not a CodeT5
+  checkpoint.** CodeT5's tokenizer files are incompatible with current
+  `transformers` (slow-tokenizer `AddedToken` bug). flan-t5-base is
+  instruction-tuned, so it can follow the *same* natural-language prompt as
+  the Anthropic backend — both backends run on literally identical inputs.
+  flan-t5-small was tried first and is too weak: it can't follow the prompt
+  at all and degenerates to repeated `<unk>` tokens.
 
 ## Working rules
 
@@ -96,7 +109,9 @@ infrastructure, ANN indexes (exact search is correct at this corpus size).
 
 ## Next phases (for later)
 
-- **Phase 4**: Run Colab training and log experiments to `results/`.
+- **Phase 4**: Run the full 393K/3-epoch fine-tune (`finetune_minilm.yaml`);
+  fine-tune the local HF summarizer (`finetune_summarizer`, currently a
+  stub); evaluate summarization (BLEU/BERTScore, `evaluate_summarization`).
 - **Phase 5**: Build demo notebooks and/or a Hugging Face Space.
 - **Phase 6**: Refine evaluation and write up `REPORT.md`.
 

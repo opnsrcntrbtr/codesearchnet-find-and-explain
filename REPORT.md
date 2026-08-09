@@ -56,9 +56,21 @@
 
 ### 3.2 Summarization model
 
-- Model choice: a code-capable LLM or Hugging Face summarization model.
-- Approach: prompting and/or fine-tuning for function-level summary
-  generation.
+- Two backends behind one `Summarizer` interface, driven by the identical
+  prompt template (`prompts/function_summary.txt`) so they're comparable on
+  literally the same inputs:
+  - **Anthropic API** — `claude-sonnet-5` by default, prompted zero-shot.
+  - **Local HF** — `google/flan-t5-base` (250M, instruction-tuned),
+    zero-shot, no API key or network at inference.
+- `google/flan-t5-small` (80M) was tried first and rejected: it cannot
+  follow the prompt at all and degenerates to repeated `<unk>` tokens.
+  CodeT5-family checkpoints were also rejected — their tokenizer files are
+  incompatible with current `transformers` (a slow-tokenizer `AddedToken`
+  bug), unrelated to model quality.
+- Target: `CodeExample.reference_summary` — the curated one-line `summary`
+  from the join when present, falling back to the cleaned docstring.
+- Fine-tuning the local backend (`finetune_summarizer`) is planned but not
+  yet implemented; the report currently only has zero-shot numbers.
 
 ### 3.3 Colab + Claude orchestration
 

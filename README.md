@@ -48,10 +48,11 @@ We are currently in **Phase 3 (implementation)**.
    outline, and add `CLAUDE.md`.~~ ✅
 2. ~~**Phase 2 – Scaffold repo structure**: `src/`, `notebooks/`, `configs/`,
    `tests/`, `results/`.~~ ✅
-3. **Phase 3 – Implement data loaders** and minimal retrieval +
-   summarization models. ← current (data, retrieval, evaluation done;
-   summarization backends pending)
+3. ~~**Phase 3 – Implement data loaders** and minimal retrieval +
+   summarization models.~~ ✅ (summarization *metrics* — BLEU/BERTScore —
+   remain stubs; tracked for Phase 4)
 4. **Phase 4 – Fine-tune the retrieval model** on Colab and log experiments.
+   ← current (50K/1-epoch result recorded; full 393K/3-epoch run next)
 5. **Phase 5 – Build demo notebooks** and/or a Hugging Face Space.
 6. **Phase 6 – Refine evaluation** and prepare the academic write-up.
 
@@ -73,8 +74,10 @@ tests/                   # pytest suite
 results/                 # appended experiment CSVs, committed
 ```
 
-The data, retrieval, and evaluation layers are implemented and tested. The
-summarization backends and `pipeline.py` are still stubs.
+Data, retrieval, retrieval evaluation, both summarization backends
+(Anthropic API + local `google/flan-t5-base`), and `pipeline.py` are
+implemented and tested. Summarization *metrics* (BLEU/BERTScore) and
+fine-tuning the local summarizer remain stubs.
 
 ## Setup
 
@@ -90,22 +93,27 @@ csne prepare-data --config configs/experiments/baseline.yaml
 csne evaluate     --config configs/experiments/baseline.yaml --bm25
 csne train        --config configs/experiments/finetune_minilm.yaml
 csne search       --config configs/experiments/baseline.yaml --query "parse a json file"
+csne explain      --config configs/experiments/baseline.yaml --query "parse a json file"
 ```
 
 `evaluate` appends a row to `results/retrieval_results.csv` tagged with the
 config hash and git commit, so every number traces back to the run that
-produced it.
+produced it. `search` is retrieval-only (free); `explain` also summarizes
+each result, which costs API tokens on the `anthropic` backend.
 
 ## Tests
 
 ```bash
 pytest -m "not slow"   # fast, offline
-pytest                 # includes tests that load the real MiniLM checkpoint
+pytest                 # includes tests that load real models (MiniLM, flan-t5-base)
 ```
 
-Choosing a summarization backend: set `backend: anthropic` (needs
-`ANTHROPIC_API_KEY`) or `backend: hf` (local, no key) in
-`configs/summarization.yaml`.
+Choosing a summarization backend in `configs/summarization.yaml`:
+`backend: anthropic` (needs `ANTHROPIC_API_KEY` or an `ant auth login`
+profile; default model `claude-sonnet-5`) or `backend: hf` (fully local, no
+key; default model `google/flan-t5-base` — instruction-tuned so it follows
+the same prompt as the Anthropic backend, unlike a raw CodeT5 checkpoint).
+Leave `model` unset in your own configs to take each backend's default.
 
 ## Colab + Claude Code usage (high-level only)
 

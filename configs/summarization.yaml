@@ -1,10 +1,21 @@
 # Summarization backend. Swap `backend` to compare API vs. local model.
-# backend: anthropic -> requires ANTHROPIC_API_KEY and the `anthropic` extra
-# backend: hf        -> local seq2seq, requires the `hf` extra
+# backend: anthropic -> requires ANTHROPIC_API_KEY (or `ant auth login`) and
+#                        the `anthropic` extra. model default: claude-sonnet-5.
+# backend: hf        -> local, no key needed; requires the `hf` extra.
+#                        model default: google/flan-t5-base (instruction-tuned,
+#                        so it follows the same prompt as the anthropic
+#                        backend — flan-t5-small is too weak to follow it at
+#                        all, and CodeT5 checkpoints' tokenizers are
+#                        incompatible with current transformers).
+# Leave `model` unset to take each backend's own default; setting one here
+# pins it for both, e.g. only if you're staying on the `anthropic` backend.
 backend: anthropic
 model: claude-sonnet-5
 
 max_output_tokens: 160
+# Not used by either backend: removed on current-gen Anthropic models, and
+# the HF backend generates deterministically via beam search. Kept for a
+# possible future sampling-based backend.
 temperature: 0.0
 
 prompt_template: prompts/function_summary.txt
