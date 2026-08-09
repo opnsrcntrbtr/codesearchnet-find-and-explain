@@ -1,0 +1,16 @@
+# Full 393K-pair corpus, 1 epoch, Colab T4 (~91 min at ~0.89s/step measured
+# on the 50K run). The 3-epoch config (finetune_minilm.yaml) is ~4.5hr on a
+# free T4 with no resume-on-disconnect -- kept for later use on a more
+# reliable tier rather than risking a multi-hour run now.
+name: finetune-minilm-full-1ep
+
+data: ../data.yaml
+retrieval: ../retrieval.yaml
+summarization: ../summarization.yaml
+evaluation: ../eval.yaml
+
+overrides:
+  retrieval:
+    epochs: 1
+    batch_size: 64
+    output_dir: checkpoints/retrieval-full-1ep
