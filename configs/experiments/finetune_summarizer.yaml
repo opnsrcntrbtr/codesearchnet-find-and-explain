@@ -13,3 +13,5 @@ overrides:
     # "cleaned_docstring" → code → cleaned docstring (ex.query)
     # "reference_summary"  → code → curated summary column from Nan-Do dataset
     training_target: cleaned_docstring
+  data:
+    max_train: 500
