@@ -89,8 +89,22 @@ def corpus_bleu(predictions: list[str], references: list[str]) -> float:
     return sacrebleu.corpus_bleu(predictions, [references]).score
 
 
+_EMPTY_PREDICTION_SENTINEL = "[no summary generated]"
+
+
 def bertscore_f1(predictions: list[str], references: list[str]) -> float:
-    """Mean BERTScore F1 over generated vs. reference summaries."""
+    """Mean BERTScore F1 over generated vs. reference summaries.
+
+    An empty prediction (a weak summarizer sometimes generates nothing) is
+    replaced with a sentinel before scoring, not dropped: `bert_score`'s
+    internal empty-string handling crashes the whole batch on a real
+    `AttributeError` under current `transformers` (reproduced against a real
+    flan-t5-base run — confirmed the empty string itself is the trigger, not
+    a transformers-version issue, since a bare tokenizer handles the same
+    call fine in isolation). The sentinel is unrelated to any real summary,
+    so it scores low against the reference — an empty prediction should be
+    penalized, not silently excluded from the average.
+    """
     import bert_score
 
     if not predictions:
@@ -99,8 +113,9 @@ def bertscore_f1(predictions: list[str], references: list[str]) -> float:
         raise ValueError(
             f"bertscore_f1: {len(predictions)} predictions vs {len(references)} references"
         )
+    safe_predictions = [p if p.strip() else _EMPTY_PREDICTION_SENTINEL for p in predictions]
     _, _, f1 = bert_score.score(
-        predictions,
+        safe_predictions,
         references,
         lang="en",
         model_type=_BERTSCORE_MODEL,

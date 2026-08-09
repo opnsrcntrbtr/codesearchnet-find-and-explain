@@ -1,0 +1,2 @@
+timestamp,git_commit,config_hash,run_name,backend,n_examples,bleu,bertscore_f1
+2026-08-09T08:42:58+00:00,a803be2,49623881a064,hf-flan-t5-base-zeroshot,hf:google/flan-t5-base,50,0.5607,0.7473

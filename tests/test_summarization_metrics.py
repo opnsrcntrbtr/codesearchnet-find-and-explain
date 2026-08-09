@@ -242,3 +242,13 @@ class TestBertscoreReal:
     def test_rejects_empty(self):
         with pytest.raises(ValueError, match="no predictions"):
             bertscore_f1([], [])
+
+    def test_survives_an_empty_prediction_in_the_batch(self):
+        """A real flan-t5-base run produced an empty string for one of 50
+        predictions. bert_score's own empty-string handling crashes the
+        whole batch under current transformers; the sentinel substitution
+        must keep the rest of the batch scoring correctly."""
+        predictions = ["parse a json file from disk", "", "send an email"]
+        references = ["parse a json file from disk", "some reference", "send an email"]
+        score = bertscore_f1(predictions, references)
+        assert 0.0 <= score <= 1.0
