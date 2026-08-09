@@ -42,6 +42,12 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument(
         "--bm25", action="store_true", help="also evaluate the lexical BM25 baseline"
     )
+    evaluate.add_argument(
+        "--summarize",
+        action="store_true",
+        help="also score summarization (costs API tokens on the anthropic backend; "
+        "capped at evaluation.summarization_sample_size)",
+    )
 
     search = add("search", "run one retrieval-only query (free — no summarization cost)")
     search.add_argument("--query", required=True)
@@ -87,9 +93,15 @@ def cmd_train(args: argparse.Namespace) -> int:
 
 
 def cmd_evaluate(args: argparse.Namespace) -> int:
-    """Run retrieval evaluation, appending to the results CSV."""
+    """Run retrieval (and optionally summarization) evaluation, appending to
+    the results CSVs."""
     from csne.data.loader import load_prepared
-    from csne.evaluation.reporting import RETRIEVAL_CSV, append_result, config_hash
+    from csne.evaluation.reporting import (
+        RETRIEVAL_CSV,
+        SUMMARIZATION_CSV,
+        append_result,
+        config_hash,
+    )
     from csne.evaluation.retrieval_metrics import evaluate_bm25, evaluate_retrieval
     from csne.retrieval.encoder import CodeSearchEncoder
 
@@ -120,6 +132,33 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
             result.mrr,
             " ".join(f"R@{k}={v:.4f}" for k, v in sorted(result.recall_at_k.items())),
         )
+
+    if args.summarize:
+        from csne.evaluation.summarization_metrics import evaluate_summarization
+        from csne.summarization.base import build_summarizer
+
+        summarizer = build_summarizer(config.summarization)
+        summ_result = evaluate_summarization(examples, summarizer, config.evaluation, config.name)
+        append_result(
+            config.evaluation.results_dir,
+            SUMMARIZATION_CSV,
+            {"config_hash": digest, **summ_result.as_row()},
+        )
+        log.info(
+            "%s (%s, n=%d): %s",
+            summ_result.run_name,
+            summ_result.backend,
+            summ_result.n_examples,
+            ", ".join(
+                f"{k}={v:.4f}"
+                for k, v in (
+                    ("bleu", summ_result.bleu),
+                    ("bertscore_f1", summ_result.bertscore_f1),
+                    ("llm_judge", summ_result.llm_judge_score),
+                )
+                if v is not None
+            ),
+        )
     return 0
 
 
@@ -145,11 +184,27 @@ def cmd_search(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_explain(args: argparse.Namespace) -> int:
+    """Retrieve top-k and summarize each result."""
+    from csne.pipeline import FindAndExplain
+
+    config = _load(args)
+    pipeline = FindAndExplain.from_config(config)
+
+    for explanation in pipeline.explain(args.query, k=args.k):
+        hit = explanation.hit
+        print(f"\n[{hit.rank}] {hit.score:.3f}  {hit.example.repo}:{hit.example.path}")
+        print(f"    {hit.example.func_name}  {hit.example.id}")
+        print(f"    {explanation.summary}")
+    return 0
+
+
 _COMMANDS = {
     "prepare-data": cmd_prepare_data,
     "train": cmd_train,
     "evaluate": cmd_evaluate,
     "search": cmd_search,
+    "explain": cmd_explain,
 }
 
 

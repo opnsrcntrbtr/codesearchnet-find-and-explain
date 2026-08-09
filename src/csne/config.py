@@ -65,6 +65,12 @@ class EvalConfig:
     retrieval_k: list[int] = field(default_factory=lambda: [1, 5, 10])
     distractor_pool_size: int = 999
     summarization_metrics: list[str] = field(default_factory=lambda: ["bleu", "bertscore"])
+    # Caps summarization eval to a sample, not the full split. BLEU/BERTScore
+    # are free either way, but "llm_judge" calls the Anthropic API per
+    # example — an uncapped run against a 1000-row test split would be an
+    # unbounded, unintended API bill. Conservative default; raise explicitly
+    # for a real report-quality run.
+    summarization_sample_size: int | None = 50
     results_dir: str = "results"
 
 
