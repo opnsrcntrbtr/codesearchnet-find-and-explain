@@ -126,9 +126,36 @@ on the next runtime recycle.
   (+15.5% relative) over the zero-shot encoder, and +0.267 over BM25.
   R@1 rises from 0.567 to 0.701 — the largest gain is getting the correct
   function to the very top of the list, not just into the top 10.
-  The full 393K-pair / 3-epoch run (`finetune_minilm.yaml`) is the next
-  experiment and is expected to improve further, though with diminishing
-  returns and a real risk of overfitting the in-batch negatives.
+  A full-corpus 1-epoch run (`finetune_minilm_full_1ep.yaml`, ~91 min on a
+  free T4) is in progress as the next data point; the 3-epoch config
+  (`finetune_minilm.yaml`, ~4.5hr on a free T4 with no resume-on-disconnect)
+  is deferred to a more reliable tier.
+
+### Summarization
+
+Zero-shot, `hf:google/flan-t5-base`, 50 test examples (capped by
+`summarization_sample_size` — BLEU/BERTScore are free, but the same eval
+path also drives the API-metered `anthropic` backend). Logged in
+`results/summarization_results.csv`.
+
+| Run | BLEU (0-100) | BERTScore F1 |
+|---|---:|---:|
+| hf:google/flan-t5-base, zero-shot | 0.5607 | 0.7473 |
+
+- BLEU near zero: at 250M params and zero-shot, flan-t5-base largely echoes
+  or lightly paraphrases the function signature/body rather than producing
+  the kind of one-line natural-language summary the reference `summary`
+  column contains — near-zero n-gram overlap with the reference is the
+  expected result of that behavior, not a scoring bug.
+- BERTScore 0.75 is meaningfully above the BLEU-implied floor: some
+  semantic signal survives even when the surface form doesn't match at all,
+  which is exactly the gap BERTScore exists to capture at this output length.
+- One of the 50 predictions was an empty string — surfaced a real
+  `bert_score`/`transformers` incompatibility (see commit history), fixed
+  with a documented sentinel substitution rather than silently dropping it.
+- The `anthropic` backend and fine-tuning the local model
+  (`finetune_summarizer`) are the next comparison points; no anthropic-
+  backend number exists yet (no API key in the environment this was run in).
 
 ### Discussion points to develop
 
