@@ -92,9 +92,139 @@ def finetune_summarizer(
     data_config: DataConfig,
     run_name: str | None = None,
 ) -> HFSummarizer:
-    """Fine-tune the local model on (code, cleaned docstring) pairs.
+    """Fine-tune the local model on (code, target) pairs.
 
-    Optional: the zero-shot backend is the baseline, and this is the
-    fine-tuned comparison point in the report's summarization experiments.
+    Training targets:
+      - "cleaned_docstring" (default): code → cleaned docstring from
+        the CodeSearchNet query column.
+      - "reference_summary": code → curated one-line summary from
+        Nan-Do/code-search-net-python.
+
+    Saves the checkpoint to `checkpoints/summarization/<run_name>`
+    (or `checkpoints/summarization` if run_name is None) and returns
+    an HFSummarizer pointing at that checkpoint.
     """
-    raise NotImplementedError
+    import random
+
+    from datasets import Dataset
+    from transformers import (
+        AutoModelForSeq2SeqLM,
+        AutoTokenizer,
+        DataCollatorForSeq2Seq,
+        Seq2SeqTrainer,
+        Seq2SeqTrainingArguments,
+    )
+
+    from csne.data.loader import CodeExample, load_prepared
+    from csne.summarization.base import render_prompt
+
+    model_name = summarization_config.model or DEFAULT_MODEL
+    device = _pick_device()
+
+    # Load training data.
+    examples: list[CodeExample] = load_prepared("train", data_config)
+
+    if data_config.max_train is not None and data_config.max_train < len(examples):
+        rng = random.Random(data_config.seed)
+        examples = rng.sample(examples, data_config.max_train)
+
+    if not examples:
+        raise ValueError("No training examples. Run `csne prepare-data` first.")
+
+    # Build (prompt, target) pairs.
+    prompts: list[str] = []
+    targets: list[str] = []
+
+    for ex in examples:
+        prompt = render_prompt(summarization_config.prompt_template, ex)
+
+        if summarization_config.training_target == "reference_summary":
+            target = ex.reference_summary
+        else:
+            # cleaned_docstring — the query column is the cleaned docstring.
+            target = ex.query
+
+        if not target or not target.strip():
+            continue  # skip examples without a valid target
+
+        prompts.append(prompt)
+        targets.append(target.strip())
+
+    if not prompts:
+        raise ValueError(
+            "No training examples with a valid target after filtering."
+        )
+
+    # Tokenize.
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+
+    tokenizer.model_max_length = 512
+
+    tokenized_inputs = tokenizer(
+        prompts,
+        padding=True,
+        truncation=True,
+        max_length=512,
+    )
+
+    tokenized_targets = tokenizer(
+        targets,
+        padding=True,
+        truncation=True,
+        max_length=64,  # summaries are short
+    )
+
+    # Replace -100 in labels with the input ids (standard seq2seq convention).
+    tokenized_targets["input_ids"] = [
+        [(t if t != -100 else tokenizer.pad_token_id) for t in row]
+        for row in tokenized_targets["input_ids"]
+    ]
+
+    dataset = Dataset.from_dict(
+        {
+            "input_ids": tokenized_inputs["input_ids"],
+            "attention_mask": tokenized_inputs["attention_mask"],
+            "labels": tokenized_targets["input_ids"],
+        }
+    )
+
+    # Training args — similar shape to the retrieval fine-tune.
+    output_dir = f"checkpoints/summarization/{run_name or 'default'}"
+
+    training_args = Seq2SeqTrainingArguments(
+        output_dir=output_dir,
+        per_device_train_batch_size=16,
+        gradient_accumulation_steps=4,
+        learning_rate=2.0e-5,
+        num_train_epochs=3,
+        warmup_ratio=0.1,
+        fp16=device != "cpu",  # use mixed precision on GPU/MPS
+        logging_steps=10,
+        save_strategy="epoch",
+        evaluation_strategy="no",
+        load_best_model_at_end=False,
+        report_to="none",  # no wandb/tensorboard in this project
+    )
+
+    data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizer, model=model)
+
+    trainer = Seq2SeqTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=dataset,
+        data_collator=data_collator,
+        tokenizer=tokenizer,
+    )
+
+    trainer.train()
+    trainer.save_model(output_dir)
+
+    # Return a summarizer pointing at the fine-tuned checkpoint.
+    ft_config = SummarizationConfig(
+        backend="hf",
+        model=output_dir,
+        max_output_tokens=summarization_config.max_output_tokens,
+        prompt_template=summarization_config.prompt_template,
+    )
+    return HFSummarizer(ft_config)

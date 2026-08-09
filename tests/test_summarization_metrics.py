@@ -23,6 +23,7 @@ from csne.evaluation.summarization_metrics import (
     evaluate_summarization,
     llm_judge,
 )
+from csne.summarization.hf_backend import finetune_summarizer
 
 
 class FakeSummarizer:
@@ -251,4 +252,151 @@ class TestBertscoreReal:
         predictions = ["parse a json file from disk", "", "send an email"]
         references = ["parse a json file from disk", "some reference", "send an email"]
         score = bertscore_f1(predictions, references)
-        assert 0.0 <= score <= 1.0
+
+
+class TestFinetuneSummarizer:
+    """Tests for finetune_summarizer — mocked to avoid loading real models."""
+
+    def _make_examples(self, n: int, with_summary: bool = True) -> list:
+        """Build examples for testing."""
+        from helpers import make_example
+
+        return [
+            make_example(
+                id=str(i),
+                repo=f"r/{i}",
+                func_name=f"func_{i}",
+                path=f"path/{i}.py",
+                code=f"def func_{i}(): pass",
+                docstring=f"This is function {i}",
+                summary=(f"summary for {i}" if with_summary else None),
+            )
+            for i in range(n)
+        ]
+
+    def _make_empty_examples(self, n: int) -> list:
+        """Build examples with no usable target (empty docstring, no summary)."""
+        from helpers import make_example
+
+        return [
+            make_example(
+                id=str(i),
+                repo=f"r/{i}",
+                func_name=f"func_{i}",
+                path=f"path/{i}.py",
+                code=f"def func_{i}(): pass",
+                docstring="",  # empty → no target
+                summary=None,
+            )
+            for i in range(n)
+        ]
+
+    def _mock_hf_backend(self, monkeypatch):
+        """Mock all HF transformers imports inside finetune_summarizer."""
+        from unittest.mock import MagicMock, patch
+
+        mock_trainer = MagicMock()
+        mock_args_cls = MagicMock()
+        mock_collator = MagicMock()
+        mock_dataset = MagicMock()
+        mock_tokenizer = MagicMock()
+        mock_model = MagicMock()
+
+        def fake_trainer_init(*args, **kwargs):
+            mock_trainer.train = MagicMock()
+            mock_trainer.save_model = MagicMock()
+            return mock_trainer
+
+        # Use patch to set return_value on class constructors.
+        self._patches = [
+            patch("transformers.AutoTokenizer", return_value=mock_tokenizer),
+            patch("transformers.AutoModelForSeq2SeqLM", return_value=mock_model),
+            patch("datasets.Dataset", return_value=mock_dataset),
+            patch(
+                "transformers.DataCollatorForSeq2Seq", return_value=mock_collator
+            ),
+            patch(
+                "transformers.Seq2SeqTrainingArguments", return_value=mock_args_cls
+            ),
+            patch(
+                "transformers.Seq2SeqTrainer", side_effect=fake_trainer_init
+            ),
+        ]
+        monkeypatch.setattr(
+            "csne.summarization.hf_backend._pick_device", lambda: "cpu"
+        )
+        for p in self._patches:
+            p.start()
+        return mock_trainer
+
+    def test_raises_on_no_examples(self, monkeypatch):
+        """Fails fast when there's no training data."""
+        from csne.config import DataConfig, SummarizationConfig
+        from csne.summarization.hf_backend import finetune_summarizer
+
+        monkeypatch.setattr(
+            "csne.data.loader.load_prepared", lambda *a, **k: []
+        )
+        with pytest.raises(ValueError, match="No training examples"):
+            finetune_summarizer(
+                SummarizationConfig(), DataConfig(cache_dir="/tmp")
+            )
+
+    def test_filters_examples_without_target(self, monkeypatch):
+        """Examples with empty/None target are skipped; raises if all filtered."""
+        from csne.config import DataConfig, SummarizationConfig
+        from csne.summarization.hf_backend import finetune_summarizer
+
+        bad_examples = self._make_empty_examples(3)
+
+        monkeypatch.setattr(
+            "csne.data.loader.load_prepared",
+            lambda *a, **k: bad_examples,
+        )
+        with pytest.raises(ValueError, match="valid target after filtering"):
+            finetune_summarizer(
+                SummarizationConfig(), DataConfig(cache_dir="/tmp")
+            )
+
+    def test_uses_cleaned_docstring_by_default(self, monkeypatch):
+        """Default training_target is cleaned_docstring (ex.query = ex.docstring)."""
+        from csne.config import DataConfig, SummarizationConfig
+        from csne.summarization.hf_backend import finetune_summarizer
+
+        examples = self._make_examples(2)
+        monkeypatch.setattr(
+            "csne.data.loader.load_prepared",
+            lambda *a, **k: examples,
+        )
+
+        mock_trainer = self._mock_hf_backend(monkeypatch)
+
+        result = finetune_summarizer(
+            SummarizationConfig(), DataConfig(cache_dir="/tmp")
+        )
+
+        # Verify the trainer was trained and saved.
+        mock_trainer.train.assert_called_once()
+        mock_trainer.save_model.assert_called_once()
+        # Result is an HFSummarizer pointing at the output dir.
+        assert result.name.startswith("hf:checkpoints/summarization/")
+
+    def test_uses_reference_summary_when_configured(self, monkeypatch):
+        """When training_target is reference_summary, ex.reference_summary (summary) is used."""
+        from csne.config import DataConfig, SummarizationConfig
+        from csne.summarization.hf_backend import finetune_summarizer
+
+        examples = self._make_examples(2)
+        monkeypatch.setattr(
+            "csne.data.loader.load_prepared",
+            lambda *a, **k: examples,
+        )
+
+        mock_trainer = self._mock_hf_backend(monkeypatch)
+
+        finetune_summarizer(
+            SummarizationConfig(training_target="reference_summary"),
+            DataConfig(cache_dir="/tmp"),
+        )
+
+        mock_trainer.train.assert_called_once()

@@ -1,0 +1,15 @@
+# Fine-tune the local HF summarizer (google/flan-t5-base) on code → summary pairs.
+# Runs on Colab GPU via Colab MCP; locally uses CPU with max_train cap for smoke tests.
+name: finetune-summarizer
+
+data: ../data.yaml
+summarization: ../summarization.yaml
+
+overrides:
+  summarization:
+    # Use the local HF backend for fine-tuning.
+    backend: hf
+    model: google/flan-t5-base
+    # "cleaned_docstring" → code → cleaned docstring (ex.query)
+    # "reference_summary"  → code → curated summary column from Nan-Do dataset
+    training_target: cleaned_docstring

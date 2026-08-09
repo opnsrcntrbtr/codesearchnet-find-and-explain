@@ -56,6 +56,9 @@ class SummarizationConfig:
     max_output_tokens: int = 160
     temperature: float = 0.0
     prompt_template: str = "prompts/function_summary.txt"
+    # "cleaned_docstring" uses the cleaned docstring (ex.query);
+    # "reference_summary" uses the curated summary column from Nan-Do.
+    training_target: str = "cleaned_docstring"
 
 
 @dataclass
