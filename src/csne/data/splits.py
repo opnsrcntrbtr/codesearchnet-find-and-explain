@@ -16,7 +16,7 @@ import hashlib
 from collections.abc import Iterable
 
 from csne.config import DataConfig
-from csne.data.loader import CodeExample, load_raw, load_summary_map, save_split
+from csne.data.loader import CodeExample, load_raw, load_prepared, load_summary_map, save_split
 from csne.data.preprocess import filter_examples
 
 SPLITS = ("train", "valid", "test")
@@ -73,6 +73,18 @@ def prepare_official_splits(config: DataConfig) -> dict[str, list[CodeExample]]:
     time because those are used whole, capped only by `distractor_pool_size`
     at evaluation time, not resampled.
     """
+    from pathlib import Path
+
+    # Check if pre-cached split files exist (from small sample datasets)
+    cache_dir = Path(config.cache_dir)
+    if all((cache_dir / f"{s}.jsonl").exists() for s in SPLITS):
+        print("Using pre-cached split files from local cache")
+        prepared: dict[str, list[CodeExample]] = {}
+        for split in SPLITS:
+            examples = load_prepared(split, config)
+            prepared[split] = examples
+        return prepared
+
     summaries = load_summary_map(config)
 
     prepared: dict[str, list[CodeExample]] = {}
