@@ -124,7 +124,22 @@ def load_raw(
 
     Streams rather than materializing: the full corpus does not fit
     comfortably in a free-tier Colab runtime.
+
+    Falls back to local JSONL cache if available (for smoke tests with
+    small sample datasets pushed to the repo).
     """
+    from pathlib import Path
+
+    cache_file = Path(config.cache_dir) / f"{split}.jsonl"
+    if cache_file.exists():
+        # Load from local cache (small sample datasets)
+        for line in open(cache_file):
+            line = line.strip()
+            if not line:
+                continue
+            yield CodeExample(**json.loads(line))
+        return
+
     from datasets import load_dataset
 
     hf_split = SPLIT_ALIASES.get(split, split)
