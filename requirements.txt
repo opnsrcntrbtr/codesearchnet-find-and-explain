@@ -1,3 +1,5 @@
+gradio
+datasets>=2.14.0
 sentence-transformers>=2.2.0
-torch>=2.0
+torch>=2.0,<2.12
 transformers>=4.30

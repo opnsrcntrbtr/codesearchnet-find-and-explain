@@ -22,6 +22,7 @@ dependencies = [
 anthropic = ["anthropic>=0.40"]
 hf = ["accelerate>=0.30", "sentencepiece>=0.2"]
 eval = ["evaluate>=0.4", "sacrebleu>=2.4", "bert-score>=0.3"]
+demo = ["gradio>=4.0"]
 dev = ["pytest>=8.0", "ruff>=0.5"]
 
 [project.scripts]

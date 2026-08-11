@@ -9,7 +9,13 @@ in requirements.txt (gradio/spaces/huggingface_hub are preinstalled).
 """
 
 # ZeroGPU rule: import spaces before any torch/CUDA-touching import
-import spaces  # noqa: E402
+try:
+    import spaces  # noqa: E402
+except ImportError:
+    spaces = None  # type: ignore[assignment]
+
+# No-op decorator when spaces is unavailable (local dev)
+_gpu = getattr(spaces, "GPU", lambda *a, **k: (lambda f: f)) if spaces else (lambda *a, **k: (lambda f: f))
 
 import gradio as gr  # noqa: E402
 import numpy as np  # noqa: E402
@@ -181,7 +187,7 @@ def _summarize_batch(examples: list[dict]) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-@spaces.GPU(duration=30)
+@_gpu(duration=30)
 def search_code(query: str, k: int, model_key: str):
     """Retrieve top-k code snippets for a natural language query."""
     if not query.strip():
@@ -224,7 +230,7 @@ def search_code(query: str, k: int, model_key: str):
     return results
 
 
-@spaces.GPU(duration=60)
+@_gpu(duration=60)
 def explain_code(query: str, k: int, model_key: str):
     """Retrieve top-k code snippets and summarize each one."""
     if not query.strip():
@@ -364,3 +370,4 @@ the 50K model (lighter, faster).
 # ---------------------------------------------------------------------------
 
 demo = build_demo()
+demo.launch(server_name="0.0.0.0", server_port=7860)

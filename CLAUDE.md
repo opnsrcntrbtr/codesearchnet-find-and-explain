@@ -10,13 +10,7 @@ integration.
 
 ## Current phase
 
-**Phase 3: Implementation — mostly complete.** Data, retrieval, retrieval
-evaluation, both summarization backends, and `pipeline.py`/CLI are
-implemented and tested (91 tests, 16 marked `slow` because they load real
-models). First fine-tune result is recorded in `REPORT.md` and
-`results/retrieval_results.csv`. Still stubs: summarization *metrics*
-(`corpus_bleu`, `bertscore_f1`, `llm_judge`, `evaluate_summarization` in
-`src/csne/evaluation/summarization_metrics.py`) and `finetune_summarizer`.
+**Phase 4 complete.** Retrieval fine-tuned on full 393K corpus (MRR 0.8151, +0.0214 vs 50K baseline). Summarization fine-tuned on full corpus (BERTScore F1 0.8463, +0.099 vs zero-shot). All metrics implemented and tested (119 tests, 16 `slow`). Results in `REPORT.md` and `results/`.
 
 Phases 1 (docs) and 2 (scaffold) are complete.
 
@@ -26,8 +20,7 @@ These were chosen deliberately; do not silently change them.
 
 - **Retrieval encoder**: `sentence-transformers/all-MiniLM-L6-v2`, fine-tuned
   with `MultipleNegativesRankingLoss`. Small enough for a free Colab T4.
-- **Two datasets, joined on the GitHub permalink** (`func_code_url` / `url`):
-  `code-search-net/code_search_net` (config `python`) for retrieval, because
+  Full-corpus (393K) fine-tune: MRR **0.8151** (+0.0214 vs 50K baseline).
   its official splits are repo-disjoint and comparable to published
   baselines; `Nan-Do/code-search-net-python` for its `summary` column as the
   summarization target. The join was measured at 100% (20K/20K sampled).
@@ -107,13 +100,9 @@ infrastructure, ANN indexes (exact search is correct at this corpus size).
 - Aim for experiment logging and reproducibility: results CSVs and
   versioned configs once scaffolding starts.
 
-## Next phases (for later)
-
-- **Phase 4**: Run the full 393K/3-epoch fine-tune (`finetune_minilm.yaml`);
-  fine-tune the local HF summarizer (`finetune_summarizer`, currently a
-  stub); evaluate summarization (BLEU/BERTScore, `evaluate_summarization`).
-- **Phase 5**: Build demo notebooks and/or a Hugging Face Space.
-- **Phase 6**: Refine evaluation and write up `REPORT.md`.
+- **Phase 5**: Demo notebooks — `notebooks/01_data_exploration.py` (dataset loading, splits, examples), `notebooks/02_retrieval_demo.py` (index building, queries, fine-tuned vs base), `notebooks/03_summarization_demo.py` (zero-shot vs fine-tuned summaries), `notebooks/04_find_and_explain.py` (end-to-end pipeline: query → retrieve → explain).
+- **Phase 6**: Ablation studies (50K vs full corpus epochs, `distractor_pool_size` sensitivity), refine evaluation.
+- **Phase 7**: Multi-language support (out of scope for MVP but noted).
 
 ## Return format
 
