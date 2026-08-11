@@ -166,7 +166,7 @@ def _summarize_batch(examples: list[dict]) -> list[str]:
     model = summarizer["model"]
 
     prompts = [_render_prompt(ex) for ex in examples]
-    inputs = tokenizer(prompts, return_tensors="pt", truncation=True, max_length=512).to(
+    inputs = tokenizer(prompts, return_tensors="pt", truncation=True, padding=True, max_length=512).to(
         "cuda"
     )
 
