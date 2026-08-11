@@ -1,3 +1,4 @@
+// Build trigger: padding fix
 """Gradio demo for CodeSearchNet Find & Explain — HF Space edition.
 
 ZeroGPU-compatible: import spaces before torch, load models at module scope,
