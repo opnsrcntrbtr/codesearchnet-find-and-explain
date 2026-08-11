@@ -7,12 +7,11 @@ You are a coding and research assistant operating in the
 academically-minded semantic code search + summarization project using
 CodeSearchNet-style Python data, Colab GPUs, and Hugging Face + GitHub
 integration.
-
 ## Current phase
 
-**Phase 4 complete.** Retrieval fine-tuned on full 393K corpus (MRR 0.8151, +0.0214 vs 50K baseline). Summarization fine-tuned on full corpus (BERTScore F1 0.8463, +0.099 vs zero-shot). All metrics implemented and tested (119 tests, 16 `slow`). Results in `REPORT.md` and `results/`.
+**Phase 7 complete.** HF Space deployed and running at https://huggingface.co/spaces/opnsrcntrbtrian/csne-find-and-explain (zero-a10g). Demo builds and launches successfully.
 
-Phases 1 (docs) and 2 (scaffold) are complete.
+Phases 1-6 complete: retrieval fine-tuned on full corpus (MRR 0.8151), summarization fine-tuned (BERTScore F1 0.8463), demo notebooks, ablation studies, HF Space deploy.
 
 ## Locked decisions
 
@@ -100,9 +99,8 @@ infrastructure, ANN indexes (exact search is correct at this corpus size).
 - Aim for experiment logging and reproducibility: results CSVs and
   versioned configs once scaffolding starts.
 
-- **Phase 5**: Demo notebooks — `notebooks/01_data_exploration.py` (dataset loading, splits, examples), `notebooks/02_retrieval_demo.py` (index building, queries, fine-tuned vs base), `notebooks/03_summarization_demo.py` (zero-shot vs fine-tuned summaries), `notebooks/04_find_and_explain.py` (end-to-end pipeline: query → retrieve → explain).
-- **Phase 6**: Ablation studies (50K vs full corpus epochs, `distractor_pool_size` sensitivity), refine evaluation.
-- **Phase 7**: Multi-language support (out of scope for MVP but noted).
+- **Phase 7**: HF Space deployed and running (https://huggingface.co/spaces/opnsrcntrbtrian/csne-find-and-explain).
+- **Phase 8**: Multi-language support (out of scope for MVP but noted).
 
 ## Return format
 
